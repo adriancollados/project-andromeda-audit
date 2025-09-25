@@ -1,5 +1,5 @@
 {
-  "name": "@adriancollados/supabase-logger",
+  "name": "@adriancollados/project-andromeda-audit",
   "version": "1.0.0",
   "description": "A simple and flexible Node.js library for logging traces to a Supabase database.",
   "main": "index.js",

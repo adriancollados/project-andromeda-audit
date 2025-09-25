@@ -1,113 +1,110 @@
 # Supabase Logger
 
-A Node.js library for logging traces to a Supabase database.
+A simple and flexible Node.js library for logging traces to a Supabase database.
 
 ## Installation
 
 ```bash
-npm install supabase-logger
+npm install
 ```
+
+(Note: This library is not on npm yet, you would install its dependencies locally).
+
+## Features
+
+- **Simple API**: A single `log` method for all your logging needs.
+- **Flexible Context**: Add rich context like `companyId`, `service`, `namespace`, and `correlationId` to your logs.
+- **Defaults**: Set default values for context at initialization and override them anytime.
+- **Automatic Timestamps**: Leverages the database for accurate and reliable `created_at` timestamps.
 
 ## Usage
 
-### Initialization
+### 1. Initialization
 
-First, you need to initialize the library with your Supabase URL and key. You can also provide optional `companyId`, `service`, and `namespace` values.
+First, initialize the library with your Supabase URL and key. You can also provide default values for `companyId`, `service`, and `namespace` that will be used in all logs unless overridden.
 
 ```javascript
-const logger = require('supabase-logger');
+const logger = require('./index.js'); // Use require('supabase-logger') if published
 
 const supabaseUrl = 'YOUR_SUPABASE_URL';
 const supabaseKey = 'YOUR_SUPABASE_KEY';
 
+// Set up default context for your application
 const options = {
-  companyId: 'YOUR_COMPANY_ID',
-  service: 'YOUR_SERVICE_NAME',
-  namespace: 'YOUR_NAMESPACE'
+  companyId: 'your-default-company-id',
+  service: 'main-app',
+  namespace: 'general'
 };
 
 logger.initialize(supabaseUrl, supabaseKey, options);
 ```
 
-### Logging Levels
+### 2. Logging
 
-The library provides the following logging levels:
-
-* `LogLevel.ERROR` (0)
-* `LogLevel.LOG` (1)
-* `LogLevel.INFO` (2)
-* `LogLevel.DEBUG` (3)
-
-### Tracing Methods
-
-Each tracing method now returns a `correlationId` which can be used to link related traces.
-
-#### `trace(level, message, data, correlationId)`
-
-This is the base method for logging a trace. You can use it to log a trace with a custom level. If no `correlationId` is provided, a new one will be generated.
+Use the `log` method to send traces. It takes a single object with all the necessary information. The method returns the `correlationId` used for the log entry, which can be useful for linking subsequent logs.
 
 ```javascript
-const correlationId = logger.trace(logger.LogLevel.INFO, 'This is an informational message', { customData: 'some value' });
+const { log, LogLevel } = require('./index.js');
+
+async function userLogin(email) {
+  // Log the start of a method, creating a new correlationId
+  const correlationId = await log({
+    level: LogLevel.INFO,
+    message: `Attempting login for ${email}`,
+    service: 'Authentication',
+    namespace: 'project-andromeda.Login'
+  });
+
+  try {
+    // ... your login logic here ...
+
+    // Log a success event, reusing the same correlationId
+    await log({
+      level: LogLevel.LOG,
+      message: 'User successfully authenticated',
+      data: { userId: 'user-123' },
+      service: 'Authentication',
+      namespace: 'project-andromeda.Login',
+      correlationId: correlationId // Link this log to the previous one
+    });
+
+  } catch (error) {
+    // Log an error, also reusing the correlationId
+    await log({
+      level: LogLevel.ERROR,
+      message: 'Login failed',
+      data: { errorMessage: error.message },
+      service: 'Authentication',
+      namespace: 'project-andromeda.Login',
+      correlationId: correlationId
+    });
+  }
+}
 ```
 
-#### `traceError(message, data, correlationId)`
+#### LogLevel
 
-Logs an error trace.
+Use `LogLevel` to specify the severity of the trace:
 
-```javascript
-logger.traceError('This is an error message', { error: new Error('Something went wrong') });
-```
-
-#### `traceLog(message, data, correlationId)`
-
-Logs a general log trace.
-
-```javascript
-logger.traceLog('This is a log message', { details: 'some details' });
-```
-
-#### `traceInfo(message, data, correlationId)`
-
-Logs an informational trace.
-
-```javascript
-logger.traceInfo('This is an info message', { info: 'some info' });
-```
-
-#### `traceDebug(message, data, correlationId)`
-
-Logs a debug trace.
-
-```javascript
-logger.traceDebug('This is a debug message', { debugData: 'some debug data' });
-```
-
-#### `traceMethod(methodName, input, output, correlationId)`
-
-Traces the entry and exit of a method. It will automatically create a `correlationId` if one is not provided, and use the same ID for both the entry and exit trace.
-
-```javascript
-logger.traceMethod('myMethod', { arg1: 'value1' }, { result: 'some result' });
-```
-
-#### `traceDatabaseCall(query, result, correlationId)`
-
-Traces a database call.
-
-```javascript
-logger.traceDatabaseCall('SELECT * FROM users', { rowCount: 10 });
-```
+- `LogLevel.ERROR` (0)
+- `LogLevel.LOG` (1)
+- `LogLevel.INFO` (2)
+- `LogLevel.DEBUG` (3)
 
 ## Supabase Setup
 
-You need to create a table named `auditoria` in your Supabase database with the following columns:
+You need to create a table named `auditoria` in your Supabase database. Use the following SQL command to create it:
 
-* `id` (int8, primary key, auto-incrementing)
-* `created_at` (timestamptz, default: `now()`)
-* `level` (int2)
-* `message` (text)
-* `data` (jsonb)
-* `company_id` (text)
-* `service` (text)
-* `namespace` (text)
-* `correlation_id` (uuid)
+```sql
+CREATE TABLE auditoria (
+  id bigint generated by default as identity primary key,
+  created_at timestamptz default now(),
+  level smallint,
+  message text,
+  data jsonb,
+  company_id text,
+  service text,
+  namespace text,
+  correlation_id uuid
+);
+```

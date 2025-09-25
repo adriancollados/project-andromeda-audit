@@ -9,21 +9,31 @@ const LogLevel = {
 };
 
 let supabase;
-let companyId;
-let service;
-let namespace;
+let defaultCompanyId;
+let defaultService;
+let defaultNamespace;
 
 function initialize(supabaseUrl, supabaseKey, options = {}) {
   supabase = createClient(supabaseUrl, supabaseKey);
-  companyId = options.companyId;
-  service = options.service;
-  namespace = options.namespace;
+  defaultCompanyId = options.companyId;
+  defaultService = options.service;
+  defaultNamespace = options.namespace;
 }
 
-async function trace(level, message, data, correlationId = uuidv4()) {
+async function log(logOptions) {
   if (!supabase) {
     throw new Error('Supabase client not initialized. Please call initialize() first.');
   }
+
+  const { 
+    level, 
+    message, 
+    data, 
+    companyId = defaultCompanyId, 
+    service = defaultService, 
+    namespace = defaultNamespace, 
+    correlationId = uuidv4()
+  } = logOptions;
 
   const logData = {
     level,
@@ -40,49 +50,12 @@ async function trace(level, message, data, correlationId = uuidv4()) {
   if (error) {
     console.error('Error logging to Supabase:', error);
   }
+
   return correlationId;
-}
-
-async function traceError(message, data, correlationId) {
-  return trace(LogLevel.ERROR, message, data, correlationId);
-}
-
-async function traceLog(message, data, correlationId) {
-  return trace(LogLevel.LOG, message, data, correlationId);
-}
-
-async function traceInfo(message, data, correlationId) {
-  return trace(LogLevel.INFO, message, data, correlationId);
-}
-
-async function traceDebug(message, data, correlationId) {
-  return trace(LogLevel.DEBUG, message, data, correlationId);
-}
-
-async function traceMethod(methodName, input, output, correlationId) {
-    const fullMethodName = namespace ? `${namespace}.${methodName}` : methodName;
-    const entryMessage = `Entering method ${fullMethodName}`;
-    const exitMessage = `Exiting method ${fullMethodName}`;
-
-    const currentCorrelationId = correlationId || uuidv4();
-
-    await traceInfo(entryMessage, { input }, currentCorrelationId);
-    await traceInfo(exitMessage, { output }, currentCorrelationId);
-    return currentCorrelationId;
-}
-
-async function traceDatabaseCall(query, result, correlationId) {
-    return await traceDebug(`Database call: ${query}`, { result }, correlationId);
 }
 
 module.exports = {
   initialize,
   LogLevel,
-  trace,
-  traceError,
-  traceLog,
-  traceInfo,
-  traceDebug,
-  traceMethod,
-  traceDatabaseCall
+  log,
 };

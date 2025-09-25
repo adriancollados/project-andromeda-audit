@@ -1,17 +1,25 @@
 {
-  "name": "supabase-logger",
+  "name": "@adriancollados/supabase-logger",
   "version": "1.0.0",
-  "description": "A Node.js library for logging traces to a Supabase database.",
+  "description": "A simple and flexible Node.js library for logging traces to a Supabase database.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adriancollados/project-andromeda-audit.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "keywords": [
     "supabase",
     "logging",
-    "tracing"
+    "tracing",
+    "auditoria"
   ],
-  "author": "",
+  "author": "adriancollados",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
